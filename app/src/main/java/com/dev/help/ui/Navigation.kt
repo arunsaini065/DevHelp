@@ -33,5 +33,8 @@ sealed interface NavRoute : NavKey {
     data object SpecialAccess : NavRoute
 
     @Serializable
+    data class SpecialSetting(val action: String, val title: String) : NavRoute
+
+    @Serializable
     data object AccessibilitySettings : NavRoute
 }

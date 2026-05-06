@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.AppSettingsAlt
 import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun DashboardScreen(
     onItemClick: (NavRoute) -> Unit,
+    onPinClick: (ShortcutItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -107,7 +109,20 @@ fun DashboardScreen(
             items(items) { item ->
                 ShortcutCard(
                     item = item,
-                    onClick = { onItemClick(item.key) }
+                    onClick = { onItemClick(item.key) },
+                    onPinClick = { 
+                        val action = when(item.key) {
+                            NavRoute.WirelessDebugging -> "wireless_debugging"
+                            NavRoute.UsbDebugging -> "android.settings.APPLICATION_DEVELOPMENT_SETTINGS"
+                            NavRoute.DeveloperOptions -> "android.settings.APPLICATION_DEVELOPMENT_SETTINGS"
+                            NavRoute.WifiSettings -> "android.settings.WIFI_SETTINGS"
+                            NavRoute.ManageApps -> "android.settings.MANAGE_APPLICATIONS_SETTINGS"
+                            NavRoute.AppInfo -> "pkg:com.dev.help"
+                            NavRoute.AccessibilitySettings -> "android.settings.ACCESSIBILITY_SETTINGS"
+                            else -> "android.settings.SETTINGS"
+                        }
+                        onPinClick(ShortcutItem(item.key.toString(), item.title, item.icon, action, item.description))
+                    }
                 )
             }
         }
@@ -126,6 +141,7 @@ data class DashboardItem(
 fun ShortcutCard(
     item: DashboardItem,
     onClick: () -> Unit,
+    onPinClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -155,7 +171,7 @@ fun ShortcutCard(
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.title,
                     style = MaterialTheme.typography.titleMedium,
@@ -166,6 +182,9 @@ fun ShortcutCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            IconButton(onClick = onPinClick) {
+                Icon(Icons.Rounded.PushPin, contentDescription = "Pin to Home")
             }
         }
     }

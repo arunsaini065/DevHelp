@@ -3,7 +3,11 @@ package com.dev.help
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
+import android.graphics.drawable.Icon
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.service.quicksettings.TileService
@@ -22,23 +26,71 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.dev.help.ui.DashboardScreen
 import com.dev.help.ui.NavRoute
+import com.dev.help.ui.ShortcutItem
+import com.dev.help.ui.SpecialAccessScreen
 import com.dev.help.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val shortcutAction = intent?.getStringExtra("shortcut_action")
+        if (shortcutAction != null) {
+            launchDirectly(shortcutAction)
+            return
+        }
+
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
-                DevQuickApp()
+                DevQuickApp(onPinShortcut = { item -> pinShortcut(item) })
             }
+        }
+    }
+
+    private fun launchDirectly(action: String) {
+        val intent = if (action.startsWith("pkg:")) {
+            Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:" + action.substring(4))
+            )
+        } else if (action == "wireless_debugging") {
+            wirelessDebuggingIntent()
+        } else {
+            Intent(action)
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { startActivity(intent) }
+            .onFailure {
+                startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        finish()
+    }
+
+    private fun pinShortcut(item: ShortcutItem) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+        val shortcutManager = getSystemService(ShortcutManager::class.java)
+        if (shortcutManager != null && shortcutManager.isRequestPinShortcutSupported) {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                action = Intent.ACTION_VIEW
+                putExtra("shortcut_action", item.action)
+            }
+
+            val shortcut = ShortcutInfo.Builder(this, item.id)
+                .setShortLabel(item.title)
+                .setIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
+                .setIntent(intent)
+                .build()
+
+            shortcutManager.requestPinShortcut(shortcut, null)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun DevQuickApp() {
+fun DevQuickApp(onPinShortcut: (ShortcutItem) -> Unit) {
     val context = LocalContext.current
     val backStack = rememberNavBackStack(NavRoute.Dashboard)
     val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>()
@@ -55,8 +107,25 @@ fun DevQuickApp() {
             ) {
                 DashboardScreen(
                     onItemClick = { route ->
-                        launchSettings(context, route)
+                        if (route is NavRoute.SpecialAccess) {
+                            backStack.add(route)
+                        } else {
+                            launchSettings(context, route)
+                        }
+                    },
+                    onPinClick = { item -> onPinShortcut(item) }
+                )
+            }
 
+            is NavRoute.SpecialAccess -> NavEntry(
+                key = key,
+                metadata = ListDetailSceneStrategy.detailPane()
+            ) {
+                SpecialAccessScreen(
+                    onPinClick = { item -> onPinShortcut(item) },
+                    onItemClick = { action ->
+                        val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { context.startActivity(intent) }
                     }
                 )
             }
@@ -68,7 +137,6 @@ fun DevQuickApp() {
             is NavRoute.WifiSettings,
             is NavRoute.AppInfo,
             is NavRoute.ManageApps,
-            is NavRoute.SpecialAccess,
             is NavRoute.AccessibilitySettings -> NavEntry(
                 key = key,
                 metadata = ListDetailSceneStrategy.detailPane()
@@ -100,6 +168,9 @@ private fun launchSettings(context: Context, key: NavRoute) {
         }
         NavRoute.AccessibilitySettings -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         NavRoute.Dashboard -> null
+        else -> {
+            Intent()
+        }
     }
 
     intent?.let {
