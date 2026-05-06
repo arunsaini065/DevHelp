@@ -4,15 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Accessibility
-import androidx.compose.material.icons.rounded.AppSettingsAlt
-import androidx.compose.material.icons.rounded.Apps
-import androidx.compose.material.icons.rounded.PushPin
-import androidx.compose.material.icons.rounded.QrCodeScanner
-import androidx.compose.material.icons.rounded.Security
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Usb
-import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.dev.help.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,17 +104,17 @@ fun DashboardScreen(
                     item = item,
                     onClick = { onItemClick(item.key) },
                     onPinClick = { 
-                        val action = when(item.key) {
-                            NavRoute.WirelessDebugging -> "wireless_debugging"
-                            NavRoute.UsbDebugging -> "android.settings.APPLICATION_DEVELOPMENT_SETTINGS"
-                            NavRoute.DeveloperOptions -> "android.settings.APPLICATION_DEVELOPMENT_SETTINGS"
-                            NavRoute.WifiSettings -> "android.settings.WIFI_SETTINGS"
-                            NavRoute.ManageApps -> "android.settings.MANAGE_APPLICATIONS_SETTINGS"
-                            NavRoute.AppInfo -> "pkg:com.dev.help"
-                            NavRoute.AccessibilitySettings -> "android.settings.ACCESSIBILITY_SETTINGS"
-                            else -> "android.settings.SETTINGS"
+                        val (action, iconRes) = when(item.key) {
+                            NavRoute.WirelessDebugging -> "wireless_debugging" to R.drawable.ic_wifi_shortcut
+                            NavRoute.UsbDebugging -> "android.settings.APPLICATION_DEVELOPMENT_SETTINGS" to R.drawable.ic_usb_shortcut
+                            NavRoute.DeveloperOptions -> "android.settings.APPLICATION_DEVELOPMENT_SETTINGS" to R.drawable.ic_settings_shortcut
+                            NavRoute.WifiSettings -> "android.settings.WIFI_SETTINGS" to R.drawable.ic_wifi_shortcut
+                            NavRoute.ManageApps -> "android.settings.MANAGE_APPLICATIONS_SETTINGS" to R.drawable.ic_apps_shortcut
+                            NavRoute.AppInfo -> "pkg:com.dev.help" to R.drawable.ic_apps_shortcut
+                            NavRoute.AccessibilitySettings -> "android.settings.ACCESSIBILITY_SETTINGS" to R.drawable.ic_settings_shortcut
+                            else -> "android.settings.SETTINGS" to R.drawable.ic_settings_shortcut
                         }
-                        onPinClick(ShortcutItem(item.key.toString(), item.title, item.icon, action, item.description))
+                        onPinClick(ShortcutItem(item.key.toString(), item.title, item.icon, action, item.description, iconRes))
                     }
                 )
             }

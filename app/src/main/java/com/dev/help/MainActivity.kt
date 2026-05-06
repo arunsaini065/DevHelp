@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity() {
 
             val shortcut = ShortcutInfo.Builder(this, item.id)
                 .setShortLabel(item.title)
-                .setIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
+                .setIcon(Icon.createWithResource(this, item.iconRes ?: R.mipmap.ic_launcher))
                 .setIntent(intent)
                 .build()
 
