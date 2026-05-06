@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Dev Help</string>
+    <string name="accessibility_service_label">Dev Help Scanner Helper</string>
+    <string name="accessibility_service_description">Opens the wireless debugging QR scanner for this dev-only helper app.</string>
+</resources>
