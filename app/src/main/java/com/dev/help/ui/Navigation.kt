@@ -28,4 +28,10 @@ sealed interface NavRoute : NavKey {
 
     @Serializable
     data object ManageApps : NavRoute
+
+    @Serializable
+    data object SpecialAccess : NavRoute
+
+    @Serializable
+    data object AccessibilitySettings : NavRoute
 }

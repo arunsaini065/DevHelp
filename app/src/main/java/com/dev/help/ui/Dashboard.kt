@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.AppSettingsAlt
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.QrCodeScanner
+import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Usb
 import androidx.compose.material.icons.rounded.Wifi
@@ -44,12 +46,6 @@ fun DashboardScreen(
                 description = "Enable ADB over WiFi"
             ),
             DashboardItem(
-                title = "Wireless QR Scanner",
-                icon = Icons.Rounded.QrCodeScanner,
-                key = NavRoute.WirelessQrScanner,
-                description = "Open ADB wireless QR pairing scanner"
-            ),
-            DashboardItem(
                 title = "Developer Options",
                 icon = Icons.Rounded.Settings,
                 key = NavRoute.DeveloperOptions,
@@ -78,6 +74,18 @@ fun DashboardScreen(
                 icon = Icons.Rounded.Apps,
                 key = NavRoute.ManageApps,
                 description = "Open installed apps list"
+            ),
+            DashboardItem(
+                title = "Special Access",
+                icon = Icons.Rounded.Security,
+                key = NavRoute.SpecialAccess,
+                description = "Manage special app permissions"
+            ),
+            DashboardItem(
+                title = "Accessibility Settings",
+                icon = Icons.Rounded.Accessibility,
+                key = NavRoute.AccessibilitySettings,
+                description = "Enable or configure accessibility services"
             )
         )
 

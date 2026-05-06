@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.service.quicksettings.TileService
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -67,7 +66,9 @@ fun DevQuickApp() {
             is NavRoute.UsbDebugging,
             is NavRoute.WifiSettings,
             is NavRoute.AppInfo,
-            is NavRoute.ManageApps -> NavEntry(
+            is NavRoute.ManageApps,
+            is NavRoute.SpecialAccess,
+            is NavRoute.AccessibilitySettings -> NavEntry(
                 key = key,
                 metadata = ListDetailSceneStrategy.detailPane()
             ) {
@@ -79,19 +80,21 @@ fun DevQuickApp() {
 
 private fun launchSettings(context: Context, key: NavRoute) {
     val intent = when (key) {
-        NavRoute.WirelessQrScanner -> {
-            openWirelessQrScanner(context)
-            null
-        }
+        NavRoute.WirelessQrScanner -> wirelessDebuggingIntent()
         NavRoute.WirelessDebugging -> wirelessDebuggingIntent()
         NavRoute.DeveloperOptions -> Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-        NavRoute.UsbDebugging -> Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+        NavRoute.UsbDebugging -> {
+            openUsbDebugging(context)
+            null
+        }
         NavRoute.WifiSettings -> Intent(Settings.ACTION_WIFI_SETTINGS)
         NavRoute.AppInfo -> Intent(
             Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
             Uri.fromParts("package", context.packageName, null)
         )
         NavRoute.ManageApps -> Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
+        NavRoute.SpecialAccess -> Intent("android.settings.MANAGE_SPECIAL_APP_ACCESS")
+        NavRoute.AccessibilitySettings -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         NavRoute.Dashboard -> null
     }
 
@@ -106,70 +109,12 @@ private fun launchSettings(context: Context, key: NavRoute) {
     }
 }
 
-private fun openWirelessQrScanner(context: Context) {
-    context.forceEnableScannerHelper()
-
-    if (!context.isScannerHelperEnabled()) {
-        Toast.makeText(
-            context,
-            "Enable Dev Help Scanner Helper, then tap again",
-            Toast.LENGTH_LONG
-        ).show()
-        context.startActivity(
-            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        )
-        return
-    }
-
-    DevHelpAccessibilityService.requestWirelessQrScan(context)
-    runCatching {
-        context.startActivity(wirelessDebuggingIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    }.onFailure {
-        context.startActivity(
-            Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        )
-    }
+private fun openUsbDebugging(context: Context) {
+    context.startActivity(
+        Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
 }
-
-private fun Context.forceEnableScannerHelper() {
-    val serviceName = scannerHelperServiceName()
-    val enabledServices = Settings.Secure.getString(
-        contentResolver,
-        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-    ).orEmpty()
-
-    val services = enabledServices
-        .split(':')
-        .filter { it.isNotBlank() }
-        .toMutableList()
-
-    if (services.none { it.equals(serviceName, ignoreCase = true) }) {
-        services.add(serviceName)
-    }
-
-    runCatching {
-        Settings.Secure.putString(
-            contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-            services.joinToString(":")
-        )
-        Settings.Secure.putInt(contentResolver, ACCESSIBILITY_ENABLED, 1)
-    }
-}
-
-private fun Context.isScannerHelperEnabled(): Boolean {
-    val enabledServices = Settings.Secure.getString(
-        contentResolver,
-        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-    ).orEmpty()
-    val serviceName = scannerHelperServiceName()
-    return enabledServices.split(':').any { it.equals(serviceName, ignoreCase = true) }
-}
-
-private fun Context.scannerHelperServiceName(): String =
-    "$packageName/${DevHelpAccessibilityService::class.java.name}"
 
 private fun wirelessDebuggingIntent(): Intent =
     Intent(TileService.ACTION_QS_TILE_PREFERENCES)
@@ -178,8 +123,6 @@ private fun wirelessDebuggingIntent(): Intent =
             Intent.EXTRA_COMPONENT_NAME,
             ComponentName(
                 "com.android.settings",
-                "com.android.settings.development.qstile.DevelopmentTiles\$WirelessDebugging"
+                "com.android.settings.development.qstile.DevelopmentTiles${'$'}WirelessDebugging"
             )
         )
-
-private const val ACCESSIBILITY_ENABLED = "accessibility_enabled"
