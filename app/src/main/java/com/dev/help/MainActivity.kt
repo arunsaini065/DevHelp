@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.service.quicksettings.TileService
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -93,7 +94,10 @@ private fun launchSettings(context: Context, key: NavRoute) {
             Uri.fromParts("package", context.packageName, null)
         )
         NavRoute.ManageApps -> Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
-        NavRoute.SpecialAccess -> Intent("android.settings.MANAGE_SPECIAL_APP_ACCESS")
+        NavRoute.SpecialAccess -> {
+            openSpecialAccess(context)
+            null
+        }
         NavRoute.AccessibilitySettings -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         NavRoute.Dashboard -> null
     }
@@ -110,10 +114,64 @@ private fun launchSettings(context: Context, key: NavRoute) {
 }
 
 private fun openUsbDebugging(context: Context) {
-    context.startActivity(
-        Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startFirstAvailable(
+        listOf(
+            settingsActivity("com.android.settings.Settings\$DevelopmentSettingsDashboardActivity"),
+            settingsActivity("com.android.settings.DevelopmentSettings"),
+            Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+        )
     )
+}
+
+private fun openSpecialAccess(context: Context) {
+    if (!context.isAccessibilityHelperEnabled()) {
+        Toast.makeText(
+            context,
+            "Enable Dev Help Scanner Helper, then tap again",
+            Toast.LENGTH_LONG
+        ).show()
+        context.startActivity(
+            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+        return
+    }
+
+    DevHelpAccessibilityService.requestSpecialAccess(context)
+    context.startFirstAvailable(specialAccessIntents())
+}
+
+private fun Context.startFirstAvailable(intents: List<Intent>) {
+    for (intent in intents) {
+        val opened = runCatching {
+            startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.isSuccess
+
+        if (opened) return
+    }
+
+    startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
+private fun settingsActivity(className: String): Intent =
+    Intent().setComponent(ComponentName("com.android.settings", className))
+
+private fun specialAccessIntents(): List<Intent> =
+    listOf(
+        Intent(ACTION_MANAGE_SPECIAL_APP_ACCESSES),
+        Intent(ACTION_SETTINGS_MANAGE_SPECIAL_APP_ACCESSES),
+        settingsActivity("com.android.settings.Settings\$SpecialAccessSettingsActivity"),
+        settingsActivity("com.android.settings.Settings\$ManageApplicationsActivity"),
+        Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
+    )
+
+private fun Context.isAccessibilityHelperEnabled(): Boolean {
+    val enabledServices = Settings.Secure.getString(
+        contentResolver,
+        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+    ).orEmpty()
+    val serviceName = "$packageName/${DevHelpAccessibilityService::class.java.name}"
+    return enabledServices.split(':').any { it.equals(serviceName, ignoreCase = true) }
 }
 
 private fun wirelessDebuggingIntent(): Intent =
@@ -126,3 +184,8 @@ private fun wirelessDebuggingIntent(): Intent =
                 "com.android.settings.development.qstile.DevelopmentTiles${'$'}WirelessDebugging"
             )
         )
+
+private const val ACTION_MANAGE_SPECIAL_APP_ACCESSES =
+    "android.intent.action.MANAGE_SPECIAL_APP_ACCESSES"
+private const val ACTION_SETTINGS_MANAGE_SPECIAL_APP_ACCESSES =
+    "android.settings.MANAGE_SPECIAL_APP_ACCESSES"
